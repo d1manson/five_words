@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include "popcntintrin.h"
 #include <chrono>
 using namespace std::chrono;
 
@@ -40,7 +41,7 @@ vector<string> LoadWords(std::string filename) {
 	return words;
 }
 
-void OutputAllSets(const vector<vector<bool>> &can_construct,
+void OutputAllSets(const vector<bool> &can_construct,
 					const vector<string> &words,
 					const vector<int> &masks,
 					vector<int> &result,
@@ -54,7 +55,7 @@ void OutputAllSets(const vector<vector<bool>> &can_construct,
 		return;
 	}
 	for (int cur_word = start_from; cur_word < (int)words.size(); ++cur_word) {
-		if (((mask & masks[cur_word]) == masks[cur_word]) && (result.size() == 4 || can_construct[3-result.size()][mask ^ masks[cur_word]])) {
+		if (((mask & masks[cur_word]) == masks[cur_word]) && (result.size() == 4 || can_construct[mask ^ masks[cur_word]])) {
 			result.push_back(cur_word);
 			OutputAllSets(can_construct, words, masks, result, mask ^ masks[cur_word], cur_word + 1);
 			result.pop_back();
@@ -64,7 +65,7 @@ void OutputAllSets(const vector<vector<bool>> &can_construct,
 
 
 void Solve(const vector<string> &words) {
-	vector<vector<bool>> can_construct(5, vector<bool>(1 << 26));
+	vector<bool> can_construct(vector<bool>(1 << 26));
 	vector<int> masks(words.size());
 	cerr << "Memory allocated\n";
 	for (int i = 0 ; i < (int)words.size(); ++i) {
@@ -73,14 +74,14 @@ void Solve(const vector<string> &words) {
 			mask |= 1 << (c - 'a');
 		}
 		masks[i] = mask;
-		can_construct[0][mask] = true;
+		can_construct[mask] = true;
 	}
 	for (int cnt = 0; cnt < 4; ++cnt) {
 		for (int mask = 0; mask < (1 << 26); ++mask) {
-			if (!can_construct[cnt][mask]) continue;
+			if (!(_mm_popcnt_u64(mask) == 5*(cnt+1) && can_construct[mask])) continue;
 			for (int i = 0; i < (int)words.size(); ++i) {
 				if ((masks[i] & mask) == 0) {
-					can_construct[cnt+1][masks[i] | mask] = true;
+					can_construct[masks[i] | mask] = true;
 				}
 			}
 		}
@@ -90,7 +91,7 @@ void Solve(const vector<string> &words) {
 
 	vector<int> result;
 	for (int mask = 0; mask < (1 << 26); ++mask) {
-		if (can_construct[4][mask]) {
+		if (_mm_popcnt_u64(mask) == 5*5 && can_construct[mask]) {
 			OutputAllSets(can_construct, words, masks, result, mask, 0);
 		}
 	}
