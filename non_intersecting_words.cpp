@@ -4,6 +4,8 @@
 #include <fstream>
 #include "popcntintrin.h"
 #include <chrono>
+//#include <bitset>
+
 using namespace std::chrono;
 
 using namespace std;
@@ -41,6 +43,11 @@ vector<string> LoadWords(std::string filename) {
 	return words;
 }
 
+inline int mask_from_omitted_char(const char omit_char){
+    return ((1 << 26) -1) ^ (1 << (omit_char - 'a'));
+}
+
+
 void OutputAllSets(const vector<bool> &can_construct,
 					const vector<string> &words,
 					const vector<int> &masks,
@@ -76,9 +83,9 @@ void Solve(const vector<string> &words) {
 		masks[i] = mask;
 		can_construct[mask] = true;
 	}
-	for (int cnt = 0; cnt < 4; ++cnt) {
+	for (int cnt = 0; cnt < 3; ++cnt) {
 		for (int mask = 0; mask < (1 << 26); ++mask) {
-			if (!(_mm_popcnt_u64(mask) == 5*(cnt+1) && can_construct[mask])) continue;
+			if (_mm_popcnt_u64(mask) != 5*(cnt+1) || !can_construct[mask]) continue;
 			for (int i = 0; i < (int)words.size(); ++i) {
 				if ((masks[i] & mask) == 0) {
 					can_construct[masks[i] | mask] = true;
@@ -89,22 +96,24 @@ void Solve(const vector<string> &words) {
 
 	cerr << "DP done\n";
 
+    auto start = high_resolution_clock::now();
 	vector<int> result;
-	for (int mask = 0; mask < (1 << 26); ++mask) {
-		if (_mm_popcnt_u64(mask) == 5*5 && can_construct[mask]) {
+	for (char omit_char = 'a'; omit_char <= 'z'; ++omit_char) {
+	        int mask = mask_from_omitted_char(omit_char);
+       	    can_construct[mask] = true;
 			OutputAllSets(can_construct, words, masks, result, mask, 0);
-		}
 	}
+	cerr << "Output time: " <<  duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 }
+
 
 int main() {
     auto start = high_resolution_clock::now();
 	cerr << "Loading words...";
 	vector<string> words = LoadWords("words_alpha.txt");
+	cerr << "loading time: " <<  duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 	cerr << "solving...";
 	Solve(words);
 	cerr << "Done\n";
-    auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<microseconds>(stop - start);
-	cerr << duration.count()/1000 << " miliseconds" << endl;
+	cerr << "total time: " <<  duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 }
