@@ -83,27 +83,32 @@ void Solve(const vector<string> &words) {
 		masks[i] = mask;
 		can_construct[mask] = true;
 	}
+
+	auto start = high_resolution_clock::now();
 	for (int cnt = 0; cnt < 3; ++cnt) {
+	    int n_visits = 0;
 		for (int mask = 0; mask < (1 << 26); ++mask) {
-			if (_mm_popcnt_u64(mask) != 5*(cnt+1) || !can_construct[mask]) continue;
+			if (!can_construct[mask] || _mm_popcnt_u32(mask) != 5*(cnt+1) ) continue;
+			n_visits++;
 			for (int i = 0; i < (int)words.size(); ++i) {
 				if ((masks[i] & mask) == 0) {
 					can_construct[masks[i] | mask] = true;
 				}
 			}
 		}
+		cerr << "Word " << (cnt + 1) << " provided " << n_visits << " starting masks to find a next word for. Main loops so far: " << duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 	}
+	cerr << "Main loop time: " <<  duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 
 	cerr << "DP done\n";
 
-    auto start = high_resolution_clock::now();
+
 	vector<int> result;
 	for (char omit_char = 'a'; omit_char <= 'z'; ++omit_char) {
 	        int mask = mask_from_omitted_char(omit_char);
        	    can_construct[mask] = true;
 			OutputAllSets(can_construct, words, masks, result, mask, 0);
 	}
-	cerr << "Output time: " <<  duration_cast<microseconds>(high_resolution_clock::now() - start).count()/1000 << " miliseconds" << endl;
 }
 
 
