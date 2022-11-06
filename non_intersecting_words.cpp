@@ -2,6 +2,8 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <chrono>
+using namespace std::chrono;
 
 using namespace std;
 
@@ -64,6 +66,7 @@ void OutputAllSets(const vector<vector<bool>> &can_construct,
 void Solve(const vector<string> &words) {
 	vector<vector<bool>> can_construct(5, vector<bool>(1 << 26));
 	vector<int> masks(words.size());
+	cerr << "Memory allocated\n";
 	for (int i = 0 ; i < (int)words.size(); ++i) {
 		int mask = 0;
 		for (auto c: words[i]) {
@@ -94,6 +97,13 @@ void Solve(const vector<string> &words) {
 }
 
 int main() {
+    auto start = high_resolution_clock::now();
+	cerr << "Loading words...";
 	vector<string> words = LoadWords("words_alpha.txt");
+	cerr << "solving...";
 	Solve(words);
+	cerr << "Done\n";
+    auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<microseconds>(stop - start);
+	cerr << duration.count()/1000 << " miliseconds" << endl;
 }
